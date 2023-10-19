@@ -9,6 +9,27 @@ class Puzzle:
         self.adj_list = None
         self.positions = [[] for _ in range(9)]
 
+    def count_inversions(self):
+        inversions = 0
+        puzzle = [number for row in self.__matrix for number in row if number != 0]
+        for i in range(len(puzzle)):
+            for j in range(i + 1, len(puzzle)):
+                if puzzle[i] > puzzle[j]:
+                    inversions += 1
+        return inversions
+
+    def is_solvable(self):
+        inversions = self.count_inversions()
+        if inversions % 2 == 0:
+            return True
+        else:
+            blank_row = 0
+            for i in range(3):
+                if 0 in self.__matrix[i]:
+                    blank_row = 3 - i
+                    break
+            return (inversions + blank_row) % 2 == 1
+
     def get_matrix(self):
         return self.__matrix
 

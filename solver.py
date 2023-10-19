@@ -13,6 +13,9 @@ itr = 0
 
 
 def iddfs(pz: Puzzle, max_depth: int = 40):
+    if not pz.is_solvable():
+        print('Puzzle not solvable')
+        return
     iddfs_solution = []
     transitions = []
     moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
@@ -102,3 +105,6 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
     solve()
     global itr
     print('iterations=', itr)
+
+def greedy():
+    pass
