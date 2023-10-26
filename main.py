@@ -5,7 +5,7 @@ from solver import iddfs, greedy
 
 if __name__ == '__main__':
 
-    # puzzle = Puzzle([[8, 6, 7], [2, 5, 4], [0, 3, 1]])
+    puzzle = Puzzle([[8, 6, 7], [2, 5, 4], [0, 3, 1]])
     #
     # iddfs(puzzle, max_depth=31)
 

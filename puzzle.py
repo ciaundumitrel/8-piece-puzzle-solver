@@ -7,9 +7,14 @@ class Puzzle:
         self.__matrix = matrix
         self.__initial_state = matrix
         self.adj_list = None
-        self.positions = [[] for _ in range(9)]
+        self.positions = {}
         self.depth = depth
         self.so_far_cost = so_far_cost
+
+    def set_positions(self):
+        for _i, i in enumerate(self.__matrix):
+            for _j, j in enumerate(i):
+                self.positions[j] = [_i, _j]
 
     def matrix_as_tuple(self):
         return tuple(map(tuple, self.__matrix))
@@ -116,29 +121,21 @@ class Puzzle:
         # print(self.manhattan_distance())
         # return self.manhattan_distance() + self.misplaced_tiles()
         # return self.misplaced_tiles()
-        print(self.depth)
-        return self.misplaced_tiles()
+        return self.manhattan_distance() + self.so_far_cost
+
     def __lt__(self, other):
         return self.heuristic() < other.heuristic()
 
     def manhattan_distance(self):
-        state1 = self.__matrix
-        n = 3
+        self.set_positions()
         min_distance = 999
 
         for state2 in self.get_goal_states():
             distance = 0
-            for i in range(n):
-                for j in range(n):
-                    tile = state1[i][j]
-                    if tile != 0:
-                        row1, col1 = divmod(tile - 1, n)  # Calculate the target position for the tile in state1
-                        for x in range(n):
-                            for y in range(n):
-                                if state2[x][y] == tile:
-                                    row2, col2 = x, y  # Find the corresponding position of the tile in state2
-                                    distance += abs(row1 - row2) + abs(col1 - col2)
-
+            for x1, line in enumerate(state2):
+                for y1, item in enumerate(line):
+                    x2, y2 = self.positions[item]
+                    distance += abs(x2 - x1) + abs(y2 - y1)
             min_distance = min(min_distance, distance)
 
         return min_distance
