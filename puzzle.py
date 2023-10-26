@@ -121,7 +121,9 @@ class Puzzle:
         # print(self.manhattan_distance())
         # return self.manhattan_distance() + self.misplaced_tiles()
         # return self.misplaced_tiles()
-        return self.manhattan_distance() + self.so_far_cost
+        # return self.hamming_distance()
+        # return self.manhattan_distance()
+        return self.linear_conflict()
 
     def __lt__(self, other):
         return self.heuristic() < other.heuristic()
@@ -140,12 +142,11 @@ class Puzzle:
 
         return min_distance
 
-    def misplaced_tiles(self):
+    def hamming_distance(self):
 
         goals = Puzzle.get_goal_states()
 
         min_count = 10
-        # The goal state
         for goal in goals:
             count = 0
             for i in range(3):
@@ -156,4 +157,31 @@ class Puzzle:
                 min_count = count
         return min_count
 
+    def linear_conflict(self):
+        def count_linear_conflicts(line):
+            conflicts = 0
+            max_value = -1
+            max_seen_index = -1
 
+            for index, tile in enumerate(line):
+                if tile == 0:
+                    continue
+
+                if tile > max_value:
+                    max_value = tile
+                    max_seen_index = index
+                elif index < max_seen_index:
+                    conflicts += 1
+
+            return conflicts
+
+        total_conflicts = 0
+
+        for row in self.__matrix:
+            total_conflicts += count_linear_conflicts(row)
+
+        for col in range(3):
+            column = [self.__matrix[row][col] for row in range(3)]
+            total_conflicts += count_linear_conflicts(column)
+
+        return self.manhattan_distance() + 2 * total_conflicts

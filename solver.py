@@ -36,9 +36,7 @@ def get_moving_edge_values(matrix: [[]]):
 
 
 def iddfs(pz: Puzzle, max_depth: int = 40):
-    if not pz.is_solvable():
-        print('Puzzle not solvable')
-        return
+
     iddfs_solution = []
     transitions = []
 
@@ -66,9 +64,8 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
             if dfs(pz, depth, visited):
                 transitions.append(pz.get_initial_state())
                 iddfs_solution.append('Finished')
-                display_puzzle_transitions(list(reversed(transitions)))
 
-                return True
+                return depth, transitions
         print(f'Can\'t find solution in depth {max_depth} for {pz.get_initial_state()}')
         return False
 
@@ -99,9 +96,7 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
 
         return False
 
-    solve()
-    global itr
-    print('iterations=', itr)
+    return solve()
 
 
 #
@@ -147,7 +142,7 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
 #     return []
 
 
-def greedy(puzzle):
+def greedy(puzzle, heuristic_function):
     opened = []
     closed = []
 
@@ -162,26 +157,19 @@ def greedy(puzzle):
             x2, y2 = edge[1]
             new_matrix = [list(row) for row in puzzle_.get_matrix()]  # Create a new copy of the matrix
             new_matrix[x1][y1], new_matrix[x2][y2] = new_matrix[x2][y2], new_matrix[x1][y1]
-            new_puzzle_ = Puzzle(new_matrix, depth=puzzle_.depth + 1, so_far_cost=puzzle.heuristic())
+            new_puzzle_ = Puzzle(new_matrix, depth=puzzle_.depth + 1, so_far_cost=getattr(puzzle, heuristic_function, None)())
             new_nodes_.append(new_puzzle_)
         return new_nodes_
 
     solution = {}
 
     while opened:
-        opened = sorted(opened, key=lambda x: x.heuristic())
+        opened = sorted(opened, key=lambda x: getattr(x, heuristic_function, None)())
         iterations += 1
         node = opened.pop(0)
         solution[node.depth] = node.get_matrix()
         if node.check_solved():
-
-            print("Puzzle solved!")
-            for s in solution:
-                print(s)
-                for line in solution[s]:
-                    print(line)
-                print("===================")
-            return True
+            return len(solution), solution
 
         nodes = get_new_nodes(node)
         closed.append(node.matrix_as_tuple())
@@ -190,3 +178,5 @@ def greedy(puzzle):
             if node_.matrix_as_tuple() not in closed:
                 opened.append(node_)
     return False
+
+
