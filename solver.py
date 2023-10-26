@@ -1,7 +1,9 @@
+import copy
 import os
 import subprocess
 
 from puzzle import Puzzle
+from queue import PriorityQueue
 
 
 def get_hamming_distance(puzzle):
@@ -11,6 +13,26 @@ def get_hamming_distance(puzzle):
 
 itr = 0
 
+moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
+
+
+def find_blank(matrix):
+    for i in range(3):
+        for j in range(3):
+            if matrix[i][j] == 0:
+                return i, j
+
+
+def get_moving_edge_values(matrix: [[]]):
+    pieces = []
+    x1, y1 = find_blank(matrix)
+    for move in moves:
+        x = move[0] + x1
+        y = move[1] + y1
+        if 0 <= x < 3 and 0 <= y < 3:
+            pieces.append([(x, y), (x1, y1)])
+
+    return pieces
 
 def iddfs(pz: Puzzle, max_depth: int = 40):
     if not pz.is_solvable():
@@ -18,17 +40,13 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
         return
     iddfs_solution = []
     transitions = []
-    moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
 
     def display_puzzle_transitions(transitions_):
 
-        subprocess.call('clear' if os.name == 'posix' else 'cls')
-
-        for i, state in enumerate(transitions_):
-            for row in state:
-                print(" ".join(map(str, row)))
-            input()
-            subprocess.call('clear' if os.name == 'posix' else 'cls')
+        # for i, state in enumerate(transitions_):
+        #     for row in state:
+        #         print(" ".join(map(str, row)))
+        #     input()
 
         print('Full: ')
         for transition in transitions_:
@@ -37,22 +55,7 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
 
             print('_________')
 
-    def find_blank(matrix):
-        for i in range(3):
-            for j in range(3):
-                if matrix[i][j] == 0:
-                    return i, j
 
-    def get_moving_edge_values(matrix):
-        pieces = []
-        x1, y1 = find_blank(matrix)
-        for move in moves:
-            x = move[0] + x1
-            y = move[1] + y1
-            if 0 <= x < 3 and 0 <= y < 3:
-                pieces.append([(x, y), (x1, y1)])
-
-        return pieces
 
     def solve():
         global itr
@@ -60,11 +63,9 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
 
         for depth in range(max_depth):
             visited = set()
-            print(depth)
+            print('depth=', depth)
             if dfs(pz, depth, visited):
-                print(depth)
                 transitions.append(pz.get_initial_state())
-                print(iddfs_solution)
                 iddfs_solution.append('Finished')
                 display_puzzle_transitions(list(reversed(transitions)))
 
@@ -79,7 +80,6 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
             return True
 
         if depth == 0:
-
             return False
 
         adj_list = get_moving_edge_values(puzzle_.get_matrix())
@@ -93,18 +93,112 @@ def iddfs(pz: Puzzle, max_depth: int = 40):
             new_visited = visited.copy()
 
             if new_state not in visited:
-
                 new_visited.add(new_state)
-
                 if dfs(new_puzzle, depth - 1, new_visited):
                     transitions.append(new_puzzle.get_matrix())
-
                     return True
+
         return False
 
     solve()
     global itr
     print('iterations=', itr)
 
-def greedy():
-    pass
+def shit(pz: Puzzle):
+    visited = set()
+    walk = []
+    moves_dict = {}
+
+    walk.append([pz, pz.heuristic()])
+
+    moves_dict[pz] = (None, None)
+
+    while walk:
+
+        current_puzzle, _  = sorted(walk, key=lambda x: x[1]).pop()
+
+        print(_)
+
+        for line in current_puzzle.get_matrix():
+            print(line)
+        print('==================')
+        input()
+
+        if current_puzzle.check_solved():
+            # Puzzle is solved; backtrack to find the solution path
+            solution_path = []
+            while current_puzzle:
+                previous_puzzle, last_move = moves_dict[current_puzzle]
+                if last_move:
+                    solution_path.append(current_puzzle.get_matrix())
+                current_puzzle = previous_puzzle
+            return list(reversed(solution_path))  # Reverse to get the correct order
+
+        visited.add(tuple(map(tuple, current_puzzle.get_matrix())))
+        adj_list = get_moving_edge_values(current_puzzle.get_matrix())
+        for move in adj_list:
+            new_puzzle = Puzzle([list(row) for row in current_puzzle.get_matrix()])
+            new_puzzle.move(move)
+
+            if tuple(map(tuple, new_puzzle.get_matrix())) not in visited:
+                walk.append([new_puzzle, new_puzzle.misplaced_tiles()])
+                # Update the moves_dict to remember the previous state and move
+                moves_dict[new_puzzle] = (current_puzzle, move)
+
+    return []  # Return an empty list if no solution is found
+
+
+def greedy(puzzle):
+    opened = []
+    closed = []
+
+    opened.append(puzzle)
+    iterations = 0
+
+    def get_new_nodes(puzzle_):
+        edges = get_moving_edge_values(puzzle_.get_matrix())
+        new_nodes_ = []
+        for edge in edges:
+            x1, y1 = edge[0]
+            x2, y2 = edge[1]
+            new_matrix = [list(row) for row in puzzle_.get_matrix()]  # Create a new copy of the matrix
+            new_matrix[x1][y1], new_matrix[x2][y2] = new_matrix[x2][y2], new_matrix[x1][y1]
+            new_puzzle_ = Puzzle(new_matrix, depth=puzzle_.depth+1, so_far_cost=puzzle.heuristic())
+            new_nodes_.append(new_puzzle_)
+        return new_nodes_
+    solution = {}
+
+    while opened:
+        opened = sorted(opened, key=lambda x: x.heuristic())
+        iterations += 1
+        node = opened.pop(0)
+        solution[node.depth] = node.get_matrix()
+        if node.check_solved():
+
+            print("Puzzle solved!")
+            for s in solution:
+                print(s)
+                for line in solution[s]:
+                    print(line)
+
+                print("===================")
+            return True
+
+        nodes = get_new_nodes(node)
+        closed.append(node.matrix_as_tuple())
+
+        for node_ in nodes:
+            if node_.matrix_as_tuple() not in closed:
+                opened.append(node_)
+
+    return False
+
+        # for m in opened:
+        #     print(m.heuristic())
+        #
+        #     for line in m.get_matrix():
+        #         print(line)
+        #     print("============")
+        # input()
+
+
